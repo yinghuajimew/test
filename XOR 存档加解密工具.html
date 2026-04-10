@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>XOR 存档加解密工具</title>
+    <style>
+        :root {
+            --primary-color: #4a6fa5;
+            --secondary-color: #6b8cbc;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+            --border-radius: 8px;
+            --box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: var(--dark-color);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 16px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 12px;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            margin-bottom: 6px;
+        }
+
+        .desc {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        .panel {
+            background: var(--light-color);
+            border-radius: 8px;
+            padding: 14px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+            margin-bottom: 16px;
+        }
+
+        .panel h2 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            font-size: 1.05rem;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        /* 隐藏原生文件选择按钮 */
+        .file-label {
+            display: inline-block;
+            padding: 8px 16px;
+            background: var(--primary-color);
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .file-label:hover {
+            background: var(--secondary-color);
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .panel h2 {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input[type=text],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #fff;
+        }
+
+        textarea {
+            min-height: 44px;
+            resize: vertical;
+        }
+
+        .file-label {
+            display: inline-block;
+            padding: 8px 16px;
+            background: var(--primary-color);
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        .file-label:hover {
+            background: var(--secondary-color);
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: 0;
+            background: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn:hover {
+            background: var(--secondary-color);
+        }
+
+        #log-area {
+            height: 300px;
+            overflow-y: auto;
+            background: #fcfcfc;
+            padding: 12px;
+            margin: 15px 0;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            font-family: monospace;
+            font-size: 14px;
+            line-height: 1.4;
+            color: #222;
+        }
+
+        .status {
+            font-size: 0.95rem;
+            color: #555;
+            margin-top: 6px;
+        }
+
+        .hint {
+            font-size: 13px;
+            color: #666;
+            margin-top: 4px;
+            display: block;
+        }
+
+        /* 日志颜色 */
+        .log-3 {
+            color: var(--primary-color);
+        }
+
+        .log-2 {
+            color: var(--success-color);
+        }
+
+        .log-4 {
+            color: var(--danger-color);
+        }
+
+        .log-6 {
+            color: var(--warning-color);
+        }
+
+        .log-d {
+            color: #8e44ad;
+        }
+
+        .log-5 {
+            color: #e67e22;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>XOR 存档加解密工具</h1>
+        </header>
+
+        <div class="panel">
+            <h2>导入存档文件夹</h2>
+            <label for="folder-input" class="file-label">点击导入</label>
+            <input type="file" id="folder-input" class="file-input" webkitdirectory directory>
+
+            <div id="folder-path" class="status">请先导入存档</div>
+        </div>
+
+        <div class="panel">
+            <h2>2. 选择操作类型</h2>
+            <select id="operation-type">
+                <option value="-1">请选择操作</option>
+                <option value="0">被动解密</option>
+                <option value="1">被动加密</option>
+                <option value="2">主动解密（自定义密钥）</option>
+                <option value="3">主动加密（自定义密钥）</option>
+            </select>
+        </div>
+
+        <div class="panel" id="key-group" style="display: none;">
+            <h2>3. 输入密钥</h2>
+            <input type="text" id="key-input" placeholder="例如：88329851（默认密钥），最多64bit">
+            <span class="hint">密钥大于64bit将截取后64bit，不足8字节将自动补零</span>
+        </div>
+
+        <button id="start-btn" class="btn">开始执行</button>
+        <div class="status" id="exec-status"></div>
+
+        <div id="log-area"></div>
+    </div>
+
+    <script>
+        // DOM元素
+        const folderInput = document.getElementById('folder-input');
+        const folderPath = document.getElementById('folder-path');
+        const operationType = document.getElementById('operation-type');
+        const keyGroup = document.getElementById('key-group');
+        const keyInput = document.getElementById('key-input');
+        const startBtn = document.getElementById('start-btn');
+        const execStatus = document.getElementById('exec-status');
+        const logArea = document.getElementById('log-area');
+
+        // 全局变量
+        let selectedFiles = []; // 存储选中的文件（含路径结构）
+        let rootPath = ''; // 根文件夹路径
+
+        // 文本提示（对应原texts.log）
+        const texts = {
+            autoKey: '<span class="log-3">已选择自适应密钥.</span>',
+            avalTest: '<span class="log-2">正在进行ldb合理性测试...</span>',
+            avalTestFail: '<span class="log-4">发现魔数不对应的ldb文件, 可能解密失败或存档损坏.</span>',
+            avalTestSucc: '<span class="log-2">ldb文件魔数均合理, 测试通过.</span>',
+            cpFile: '<span class="log-2">正在复制源文件...</span>',
+            createFolder: '<span class="log-2">正在创建输出文件夹...</span>',
+            decrypting: '<span class="log-2">正在解密...</span>',
+            decSucc1: '<span class="log-2">解密完成, 解密后存档已保存至<span class="log-6">%0</span>.</span>',
+            delExistFolder: '<span class="log-2">文件夹已存在, 是否删除并覆盖[y/N]</span>',
+            encrypting: '<span class="log-2">正在加密...</span>',
+            encSucc1: '<span class="log-2">加密完成, 加密后存档已保存至<span class="log-6">%0</span>.</span>',
+            error: '<span class="log-4">出现错误: %0</span>',
+            exit: '<br><span class="log-d">操作结束.</span>',
+            finish: '<span class="log-3">执行结束, 可重新选择文件进行操作.</span>',
+            foundEncFile: '<span class="log-4">找到已加密文件, 无法再次执行加密.</span>',
+            getKeyFail: '<span class="log-4">获取密钥失败.</span>',
+            getKeySucc: '<span class="log-2">获取密钥成功: <span class="log-3">%0</span></span>',
+            gt3EncFile: '<span class="log-2">找到 <span class="log-6">%0</span> 等<span class="log-6">%1</span>个加密文件.</span>',
+            invalidKey: '<span class="log-4">无效密钥, 请重试.</span>',
+            invalidOp: '<span class="log-4">无效的操作类型.</span>',
+            le3EncFile: '<span class="log-2">找到加密文件: <span class="log-6">%0</span></span>',
+            missing: '<span class="log-4">缺失: %0</span>',
+            noEncFile: '<span class="log-4">未找到加密的文件, 存档文件夹可能已解密.</span>',
+            noToEncFile: '<span class="log-4">未找到准备加密的文件, 存档可能已经是加密的,或者是存档文件夹可能损坏.</span>',
+            readyToEnc: '<span class="log-5">准备加密.</span>',
+            scanning: '<span class="log-5">扫描文件夹...</span>',
+            selectOperation: "<span class='log-3'>请选择操作类型: 0.被动解密, 1.被动加密, 2.主动解密, 3.主动加密</span>",
+            targetInvalid: '<span class="log-4">目标不存在或不是文件夹.</span>',
+            targetPath: '<span class="log-3">目标目录: %0</span>',
+            test: '<span class="log-2">已确认目标, 正在检测完整性...</span>',
+            testFail: '<span class="log-4">完整性测试未通过, 请检查后再试.</span>',
+            testSucc: '<span class="log-2">目标文件夹完整.</span>',
+            tip1: '<span class="log-3">请输入目标存档level.dat所在文件夹路径.</span>',
+            tip2: '<span class="log-3">正在进行被动解密.</span>',
+            tip3: '<span class="log-3">请输入十六进制密钥. 若大于64bit将截取后64bit作为密钥. 自适应请留空.</span>',
+            tip4: '<span class="log-3">正在进行主动解密.</span>',
+            tip5: '<span class="log-5">正在进行被动加密.</span>',
+            tip6: '<span class="log-3">请输入十六进制密钥用于加密. 若大于64bit将截取后64bit作为密钥.</span>',
+            tip7: '<span class="log-5">正在进行主动加密.</span>',
+            tryGetKey: '<span class="log-2">尝试获取密钥...</span>',
+            welcome: '<span class="log-3">欢迎使用XOR存档加解密工具</span>'
+        };
+
+        // 日志输出函数
+        function log(str, args = []) {
+            // 替换占位符
+            args.forEach((a, i) => {
+                str = str.replace(`%${i}`, a);
+            });
+            logArea.innerHTML += str + '<br>';
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        // 文件夹选择处理
+        folderInput.addEventListener('change', (e) => {
+            selectedFiles = [];
+            const files = e.target.files;
+            if (!files.length) return;
+
+            // 记录根路径（取第一个文件的父目录）
+            rootPath = files[0].webkitRelativePath.split('/')[0];
+            folderPath.innerHTML = `<span class="log-6">已选择: ${rootPath}</span>`;
+            execStatus.innerHTML = '';
+
+            // 收集所有文件（保留相对路径结构）
+            for (let file of files) {
+                selectedFiles.push({
+                    file: file, // 原生File对象（Blob子类）
+                    relativePath: file.webkitRelativePath,
+                    processedContent: null // 存储处理后的内容（Uint8Array）
+                });
+            }
+
+            log(`<span class="log-2">成功读取文件夹: ${rootPath}</span>`);
+            log(`<span class="log-2">共找到 ${selectedFiles.length} 个文件</span>`);
+        });
+
+        // 操作类型选择处理
+        operationType.addEventListener('change', (e) => {
+            const op = parseInt(e.target.value);
+            // 主动操作显示密钥输入框
+            keyGroup.style.display = (op === 2 || op === 3) ? 'block' : 'none';
+            // 主动加密要求密钥必填
+            keyInput.required = (op === 3);
+        });
+
+        // 工具函数：将Uint8Array转为Blob
+        function uint8ArrayToBlob(uint8Array, mimeType = 'application/octet-stream') {
+            return new Blob([uint8Array], { type: mimeType });
+        }
+
+        // 工具函数：读取Blob为ArrayBuffer
+        async function readBlobAsArrayBuffer(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (err) => reject(new Error(`读取文件失败: ${err.message}`));
+                reader.readAsArrayBuffer(blob);
+            });
+        }
+
+        // XOR核心逻辑（移植原JS核心函数）
+        const XOR = {
+            checkFileIsEncrypt: function (buf) {
+                if (!buf || buf.byteLength < 4) return false;
+                const magic1 = new DataView(buf).getUint32(0, false); // BE
+                const magic2 = new DataView(buf).getUint32(0, false);
+                return magic1 === 0x801D3001 || magic2 === 0x901D3001;
+            },
+
+            encryptFile: function (buf, key) {
+                // 默认密钥
+                if (!key || !key.length) key = new TextEncoder().encode('88329851');
+                // 确保密钥是Uint8Array
+                if (!(key instanceof Uint8Array)) key = new Uint8Array(key);
+
+                // 确保输入是ArrayBuffer
+                if (buf instanceof Uint8Array) buf = buf.buffer;
+
+                const ret = new Uint8Array(buf);
+                const magicNum = new Uint8Array([0x80, 0x1D, 0x30, 0x01]);
+
+                // XOR运算
+                for (let i = 0; i < ret.length; i++) {
+                    ret[i] ^= key[i % 8];
+                }
+
+                // 拼接魔数和加密后的数据
+                const result = new Uint8Array(magicNum.length + ret.length);
+                result.set(magicNum, 0);
+                result.set(ret, magicNum.length);
+                return result;
+            },
+
+            decryptFile: function (buf, key) {
+                // 默认密钥
+                if (!key || !key.length) key = new TextEncoder().encode('88329851');
+                // 确保密钥是Uint8Array
+                if (!(key instanceof Uint8Array)) key = new Uint8Array(key);
+
+                // 确保输入是ArrayBuffer
+                if (buf instanceof Uint8Array) buf = buf.buffer;
+
+                if (!this.checkFileIsEncrypt(buf)) return false;
+                // 去掉前4字节魔数
+                const ret = new Uint8Array(buf.slice(4));
+
+                // XOR运算
+                for (let i = 0; i < ret.length; i++) {
+                    ret[i] ^= key[i % key.length];
+                }
+
+                return ret;
+            }
+        };
+
+        // 解析十六进制密钥（移植原函数）
+        function parseHexKeyInput(input) {
+            if (typeof input !== 'string') return null;
+            let normalized = input.trim();
+            if (!normalized.length) return null;
+
+            // 十六进制字符串转Uint8Array
+            try {
+                // 处理奇数长度的十六进制字符串
+                if (normalized.length % 2 !== 0) {
+                    normalized = '0' + normalized;
+                }
+                const key = new Uint8Array(normalized.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+
+                // 处理密钥长度（最多8字节，不足补零）
+                let processedKey = new Uint8Array(8);
+                if (key.length > 8) {
+                    // 截取后8字节
+                    processedKey.set(key.slice(key.length - 8), 0);
+                } else {
+                    // 不足补零
+                    processedKey.set(key, 0);
+                }
+
+                return processedKey;
+            } catch (e) {
+                log(texts.invalidKey);
+                return null;
+            }
+        }
+
+        // 预处理文件夹（扫描加密/解密文件）
+        async function preprocessDir() {
+            log(texts.scanning);
+
+            const encrypted = [];
+            const decrypted = [];
+            let descFileName = '';
+            let curFileContent = null;
+
+            // 筛选db目录下的目标文件
+            const dbFiles = selectedFiles.filter(item => {
+                const relPath = item.relativePath;
+                // 匹配 MANIFEST-xxxxxx、CURRENT、xxxxxx.ldb 文件
+                return relPath.includes('db/') && (
+                    /MANIFEST-[0-9]{6}$/.test(relPath) ||
+                    /CURRENT$/.test(relPath) ||
+                    /[0-9]{6}\.ldb$/.test(relPath)
+                );
+            });
+
+            if (dbFiles.length === 0) {
+                log(texts.missing, ['db目录或相关文件']);
+                return null;
+            }
+
+            // 检查每个文件是否加密
+            for (let item of dbFiles) {
+                const file = item.file;
+                const relPath = item.relativePath;
+
+                try {
+                    // 读取文件内容（确保是
+
+                    // 继续完成文件加密状态检查逻辑
+                    const buf = await readBlobAsArrayBuffer(file);
+
+                    if (/MANIFEST/.test(relPath)) {
+                        descFileName = relPath.split('/').pop() + '\n';
+                    }
+                    if (/CURRENT/.test(relPath)) {
+                        curFileContent = buf;
+                    }
+
+                    // 判断是否加密
+                    if (XOR.checkFileIsEncrypt(buf)) {
+                        encrypted.push(item);
+                    } else {
+                        decrypted.push(item);
+                    }
+                } catch (e) {
+                    log(texts.error, [`读取文件 ${relPath} 失败: ${e.message}`]);
+                    continue;
+                }
+            }
+
+            // 输出扫描结果
+            if (encrypted.length > 3) {
+                const firstFile = encrypted[0].relativePath.split('/').pop();
+                log(texts.gt3EncFile, [firstFile, encrypted.length]);
+            } else if (encrypted.length > 0) {
+                const fileName = encrypted[0].relativePath.split('/').pop();
+                log(texts.le3EncFile, [fileName]);
+            }
+
+            return {
+                encrypted,
+                decrypted,
+                before: descFileName,
+                after: curFileContent
+            };
+        }
+
+        // 创建ZIP包（修复文件内容类型处理）
+        async function createZipFile(files, operationType) {
+            log(texts.cpFile);
+
+            // 动态加载JSZip库（无需本地导入，通过CDN）
+            if (!window.JSZip) {
+                log('<span class="log-2">正在加载文件压缩库...</span>');
+                await new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
+                    script.onload = resolve;
+                    script.onerror = () => reject(new Error('压缩库加载失败'));
+                    document.head.appendChild(script);
+                });
+            }
+
+            const zip = new JSZip();
+            const isEncrypt = operationType === 1 || operationType === 3;
+            const zipName = isEncrypt ? `${rootPath}_Enc.zip` : `${rootPath}_Dec.zip`;
+
+            // 向ZIP中添加所有文件（保持原目录结构，统一处理为Uint8Array）
+            for (let item of files) {
+                const relPath = item.relativePath.replace(`${rootPath}/`, '');
+                let content;
+
+                try {
+                    if (item.processedContent) {
+                        // 处理后的内容（已是Uint8Array）
+                        content = item.processedContent;
+                    } else {
+                        // 原始文件（File对象）转Uint8Array
+                        const arrayBuffer = await readBlobAsArrayBuffer(item.file);
+                        content = new Uint8Array(arrayBuffer);
+                    }
+
+                    // 添加到ZIP，保持目录结构
+                    zip.file(relPath, content);
+                } catch (e) {
+                    log(texts.error, [`添加文件 ${relPath} 到压缩包失败: ${e.message}`]);
+                    continue;
+                }
+            }
+
+            // 生成ZIP文件并触发下载
+            try {
+                const content = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(content);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = zipName;
+                document.body.appendChild(a);
+                a.click();
+                // 延迟移除a标签，确保下载触发
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+            } catch (e) {
+                log(texts.error, [`生成压缩包失败: ${e.message}`]);
+                throw e;
+            }
+
+            return zipName;
+        }
+
+        // 加解密核心函数（统一Blob处理）
+        async function processFiles(files, isEncrypt, key = null) {
+            const processedFiles = [];
+
+            for (let item of files) {
+                const file = item.file;
+                const relPath = item.relativePath;
+
+                try {
+                    // 读取原文件内容（统一转为ArrayBuffer）
+                    const originalBuf = await readBlobAsArrayBuffer(file);
+
+                    // 执行加解密
+                    let processedBuf;
+                    if (isEncrypt) {
+                        processedBuf = XOR.encryptFile(originalBuf, key);
+                    } else {
+                        processedBuf = XOR.decryptFile(originalBuf, key);
+                        if (!processedBuf) {
+                            log(texts.avalTestFail, [relPath.split('/').pop()]);
+                            return null;
+                        }
+                    }
+
+                    processedFiles.push({
+                        ...item,
+                        processedContent: processedBuf // 存储为Uint8Array，后续直接用于ZIP
+                    });
+                } catch (e) {
+                    log(texts.error, [`处理文件 ${relPath} 失败: ${e.message}`]);
+                    continue;
+                }
+            }
+
+            // 检查是否有成功处理的文件
+            if (processedFiles.length === 0 && files.length > 0) {
+                log(texts.error, ['所有文件处理失败']);
+                return null;
+            }
+
+            return processedFiles;
+        }
+
+        // 被动解密（默认密钥）
+        async function defaultDecrypt() {
+            log(texts.tip2);
+            const preprocess = await preprocessDir();
+            if (!preprocess) return false;
+
+            const { encrypted } = preprocess;
+            if (!encrypted.length) {
+                log(texts.noEncFile);
+                return false;
+            }
+
+            log(texts.decrypting);
+            const processedFiles = await processFiles(encrypted, false);
+            if (!processedFiles) return false;
+
+            // 合并所有文件（未加密文件原样保留，加密文件替换为解密后内容）
+            const allFiles = selectedFiles.map(item => {
+                const processedItem = processedFiles.find(p => p.relativePath === item.relativePath);
+                return processedItem || item;
+            });
+
+            // 生成ZIP并下载
+            const zipName = await createZipFile(allFiles, 0);
+            log(texts.decSucc1, [zipName]);
+            return true;
+        }
+
+        // 被动加密（默认密钥）
+        async function defaultEncrypt() {
+            log(texts.tip5);
+            const preprocess = await preprocessDir();
+            if (!preprocess) return false;
+
+            const { decrypted } = preprocess;
+            if (!decrypted.length) {
+                log(texts.noToEncFile);
+                return false;
+            }
+
+            log(texts.encrypting);
+            const processedFiles = await processFiles(decrypted, true);
+            if (!processedFiles) return false;
+
+            // 合并所有文件（已加密文件原样保留，未加密文件替换为加密后内容）
+            const allFiles = selectedFiles.map(item => {
+                const processedItem = processedFiles.find(p => p.relativePath === item.relativePath);
+                return processedItem || item;
+            });
+
+            // 生成ZIP并下载
+            const zipName = await createZipFile(allFiles, 1);
+            log(texts.encSucc1, [zipName]);
+            return true;
+        }
+
+        // 主动解密（自定义密钥）
+        async function activeDecrypt() {
+            log(texts.tip4);
+            const preprocess = await preprocessDir();
+            if (!preprocess) return false;
+
+            const { encrypted } = preprocess;
+            if (!encrypted.length) {
+                log(texts.noEncFile);
+                return false;
+            }
+
+            // 解析密钥
+            const keyStr = keyInput.value.trim();
+            const key = keyStr ? parseHexKeyInput(keyStr) : null;
+            if (keyStr && !key) {
+                log(texts.invalidKey);
+                return false;
+            }
+
+            if (!key) {
+                log(texts.autoKey);
+            } else {
+                // 密钥转为十六进制字符串显示
+                const keyHex = Array.from(key).map(b => b.toString(16).padStart(2, '0')).join('');
+                log(texts.getKeySucc, [keyHex]);
+            }
+
+            log(texts.decrypting);
+            const processedFiles = await processFiles(encrypted, false, key);
+            if (!processedFiles) return false;
+
+            // 合并所有文件
+            const allFiles = selectedFiles.map(item => {
+                const processedItem = processedFiles.find(p => p.relativePath === item.relativePath);
+                return processedItem || item;
+            });
+
+            // 生成ZIP并下载
+            const zipName = await createZipFile(allFiles, 2);
+            log(texts.decSucc1, [zipName]);
+            return true;
+        }
+
+        // 主动加密（自定义密钥）
+        async function activeEncrypt() {
+            log(texts.tip7);
+            const preprocess = await preprocessDir();
+            if (!preprocess) return false;
+
+            const { decrypted } = preprocess;
+            if (!decrypted.length) {
+                log(texts.noToEncFile);
+                return false;
+            }
+
+            // 解析密钥（主动加密必填）
+            const keyStr = keyInput.value.trim();
+            if (!keyStr) {
+                log(texts.invalidKey);
+                return false;
+            }
+
+            const key = parseHexKeyInput(keyStr);
+            if (!key) {
+                log(texts.invalidKey);
+                return false;
+            }
+
+            // 密钥转为十六进制字符串显示
+            const keyHex = Array.from(key).map(b => b.toString(16).padStart(2, '0')).join('');
+            log(texts.getKeySucc, [keyHex]);
+            log(texts.encrypting);
+
+            const processedFiles = await processFiles(decrypted, true, key);
+            if (!processedFiles) return false;
+
+            // 合并所有文件
+            const allFiles = selectedFiles.map(item => {
+                const processedItem = processedFiles.find(p => p.relativePath === item.relativePath);
+                return processedItem || item;
+            });
+
+            // 生成ZIP并下载
+            const zipName = await createZipFile(allFiles, 3);
+            log(texts.encSucc1, [zipName]);
+            return true;
+        }
+
+        // 开始执行按钮点击事件
+        startBtn.addEventListener('click', async () => {
+            // 清空日志（保留欢迎信息）
+            logArea.innerHTML = texts.welcome + '<br>';
+            execStatus.innerHTML = '';
+
+            // 验证文件夹选择
+            if (!selectedFiles.length) {
+                log(texts.targetInvalid);
+                execStatus.innerHTML = '<span class="log-4">请先选择存档文件夹</span>';
+                return;
+            }
+
+            // 验证操作类型
+            const op = parseInt(operationType.value);
+            if (op === -1) {
+                log(texts.invalidOp);
+                execStatus.innerHTML = '<span class="log-4">请选择操作类型</span>';
+                return;
+            }
+
+            try {
+                // 执行对应操作
+                let result = false;
+                switch (op) {
+                    case 0: result = await defaultDecrypt(); break;
+                    case 1: result = await defaultEncrypt(); break;
+                    case 2: result = await activeDecrypt(); break;
+                    case 3: result = await activeEncrypt(); break;
+                }
+
+                if (result) {
+                    log(texts.finish);
+                    execStatus.innerHTML = '<span class="log-2">操作成功！</span>';
+                } else {
+                    execStatus.innerHTML = '<span class="log-4">操作失败，请查看日志</span>';
+                }
+            } catch (e) {
+                log(texts.error, [e.message]);
+                execStatus.innerHTML = `<span class="log-4">操作异常：${e.message}</span>`;
+            } finally {
+                log(texts.exit);
+            }
+        });
+
+        // 初始化页面
+        log(texts.welcome);
+    </script>
+</body>
+
+</html>
